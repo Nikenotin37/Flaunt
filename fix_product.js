@@ -1,5 +1,6 @@
-// @ts-nocheck
-import React, { useEffect, useState } from 'react';
+const fs = require('fs');
+
+const code = `import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, Dimensions, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -73,8 +74,8 @@ export default function ProductDetailScreen() {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Check out ${product.name} on FLAUNT Archive!`,
-        url: `https://flaunt.app/product/${id}`,
+        message: \`Check out \${product.name} on FLAUNT Archive!\`,
+        url: \`https://flaunt.app/product/\${id}\`,
       });
     } catch (error: any) {
       console.log(error.message);
@@ -98,8 +99,8 @@ export default function ProductDetailScreen() {
     );
     
     if (data) {
-      alert(`Navigating to payment flow for order #${data.id}`);
-      // In a real app: router.push(`/checkout/${data.id}`)
+      alert(\`Navigating to payment flow for order #\${data.id}\`);
+      // In a real app: router.push(\`/checkout/\${data.id}\`)
     }
   };
 
@@ -166,7 +167,7 @@ export default function ProductDetailScreen() {
           {/* Seller Info */}
           {store && (
             <TouchableOpacity 
-              onPress={() => router.push(`/store/${store.id}`)}
+              onPress={() => router.push(\`/store/\${store.id}\`)}
               className="flex-row items-center border-b border-[#EBEBEB] pb-4 mb-4"
             >
               <Image source={{ uri: store.logo_url }} className="w-10 h-10 rounded-full mr-3 border border-[#EBEBEB]" />
@@ -237,7 +238,7 @@ export default function ProductDetailScreen() {
       <View className="absolute bottom-0 w-full bg-[#F7F4EF] p-4 border-t border-[#EBEBEB]">
         {product.is_auction ? (
           <TouchableOpacity 
-            onPress={() => router.push(`/auction/${product.id}`)}
+            onPress={() => router.push(\`/auction/\${product.id}\`)}
             className="w-full bg-[#FF3B00] items-center justify-center py-4"
           >
             <Text style={{ fontFamily: 'Inter_900Black', fontSize: 14, color: '#FFFFFF', letterSpacing: 1 }} className="uppercase">ENTER LIVE AUCTION</Text>
@@ -254,3 +255,5 @@ export default function ProductDetailScreen() {
     </SafeAreaView>
   );
 }
+`;
+fs.writeFileSync('src/app/product/[id].tsx', code);

@@ -1,4 +1,6 @@
-import { supabase } from './supabase';
+const fs = require('fs');
+
+const code = `import { supabase } from './supabase';
 
 interface RateLimitEntry {
   count: number;
@@ -69,3 +71,5 @@ export const safeApiCall = async <T = any>(
     return { data: null, error: error.message || 'A network error occurred.' };
   }
 };
+`;
+fs.writeFileSync('src/lib/api.ts', code);

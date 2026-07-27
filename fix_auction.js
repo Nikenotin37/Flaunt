@@ -1,5 +1,6 @@
-// @ts-nocheck
-import React, { useEffect, useState, useRef } from 'react';
+const fs = require('fs');
+
+const code = `import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, TextInput, Dimensions, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -30,10 +31,10 @@ export default function AuctionLiveScreen() {
 
     // Subscribe to realtime bids table for this auction
     const channel = supabase
-      .channel(`auction_${id}`)
+      .channel(\`auction_\${id}\`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bids', filter: `auction_id=eq.${id}` },
+        { event: 'INSERT', schema: 'public', table: 'bids', filter: \`auction_id=eq.\${id}\` },
         (payload) => {
           handleNewRealtimeBid(payload.new);
         }
@@ -64,7 +65,7 @@ export default function AuctionLiveScreen() {
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
       setTimeLeft(
-        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        \`\${hours.toString().padStart(2, '0')}:\${minutes.toString().padStart(2, '0')}:\${seconds.toString().padStart(2, '0')}\`
       );
     };
 
@@ -139,7 +140,7 @@ export default function AuctionLiveScreen() {
 
     const amountNum = parseFloat(bidInput);
     if (isNaN(amountNum) || amountNum <= currentBid) {
-      alert(`Bid must be higher than ₹${currentBid}`);
+      alert(\`Bid must be higher than ₹\${currentBid}\`);
       return;
     }
 
@@ -250,3 +251,5 @@ export default function AuctionLiveScreen() {
     </KeyboardAvoidingView>
   );
 }
+`;
+fs.writeFileSync('src/app/auction/[id].tsx', code);

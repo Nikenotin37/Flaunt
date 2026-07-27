@@ -1,5 +1,6 @@
-// @ts-nocheck
-import React, { useState } from 'react';
+const fs = require('fs');
+
+const code = `import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -179,3 +180,5 @@ export default function SellerOnboardingScreen() {
     </SafeAreaView>
   );
 }
+`;
+fs.writeFileSync('src/app/seller-onboarding.tsx', code);

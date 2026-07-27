@@ -1,5 +1,6 @@
-// @ts-nocheck
-import React, { useEffect, useState } from 'react';
+const fs = require('fs');
+
+const code = `import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -174,7 +175,7 @@ export default function StoreProfileScreen() {
           {products.map((item, index) => (
             <TouchableOpacity 
               key={item.id} 
-              onPress={() => router.push(`/product/${item.id}`)}
+              onPress={() => router.push(\`/product/\${item.id}\`)}
               style={{ 
                 width: width / 3, 
                 height: width / 3, 
@@ -192,3 +193,5 @@ export default function StoreProfileScreen() {
     </SafeAreaView>
   );
 }
+`;
+fs.writeFileSync('src/app/store/[id].tsx', code);

@@ -1,5 +1,6 @@
-// @ts-nocheck
-import React, { useEffect, useState } from 'react';
+const fs = require('fs');
+
+const code = `import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, RefreshControl, Dimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -154,7 +155,7 @@ export default function HomeScreen() {
               <TouchableOpacity 
                 key={storyGrp.store_id}
                 className="items-center mr-4"
-                onPress={() => router.push(`/story/${storyGrp.store_id}`)}
+                onPress={() => router.push(\`/story/\${storyGrp.store_id}\`)}
               >
                 <View 
                   className="w-[60px] h-[60px] rounded-full justify-center items-center mb-1"
@@ -187,7 +188,7 @@ export default function HomeScreen() {
                 <TouchableOpacity 
                   key={product.id}
                   className="mb-4"
-                  onPress={() => router.push(`/product/${product.id}`)}
+                  onPress={() => router.push(\`/product/\${product.id}\`)}
                 >
                   <Image 
                     source={{ uri: product.images?.[0] || 'https://via.placeholder.com/400' }}
@@ -203,7 +204,7 @@ export default function HomeScreen() {
                 <TouchableOpacity 
                   key={product.id}
                   className="mb-4"
-                  onPress={() => router.push(`/product/${product.id}`)}
+                  onPress={() => router.push(\`/product/\${product.id}\`)}
                 >
                   <Image 
                     source={{ uri: product.images?.[0] || 'https://via.placeholder.com/400' }}
@@ -231,3 +232,6 @@ const isCloseToBottom = ({ layoutMeasurement, contentOffset, contentSize }: any)
   const paddingToBottom = 20;
   return layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
 };
+`;
+
+fs.writeFileSync('src/app/(tabs)/index.tsx', code);

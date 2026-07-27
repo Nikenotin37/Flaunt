@@ -1,4 +1,7 @@
-import { Tabs, useRouter } from 'expo-router';
+const fs = require('fs');
+let code = fs.readFileSync('src/app/(tabs)/_layout.tsx', 'utf8');
+
+const newCode = `import { Tabs, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { View, TouchableOpacity, Modal, Text } from 'react-native';
 import { useState } from 'react';
@@ -146,3 +149,6 @@ export default function TabLayout() {
     </>
   );
 }
+`;
+
+fs.writeFileSync('src/app/(tabs)/_layout.tsx', newCode);
