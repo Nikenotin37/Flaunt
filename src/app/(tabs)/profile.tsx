@@ -33,7 +33,7 @@ export default function ProfileScreen() {
     const userId = session.user.id;
 
     // Fetch user details
-    const { data: user } = await safeApiCall(() => supabase.from('users').select('*').eq('auth_id', userId).single());
+    const { data: user } = await safeApiCall(() => supabase.from('users').select('*').eq('auth_id', userId).maybeSingle());
     if (user) setProfileData(user);
 
     // Fetch following count
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
 
     if (isSeller && storeId) {
       // Fetch store
-      const { data: store } = await safeApiCall(() => supabase.from('stores').select('*').eq('id', storeId).single());
+      const { data: store } = await safeApiCall(() => supabase.from('stores').select('*').eq('id', storeId).maybeSingle());
       if (store) {
         setStoreData(store);
         followersCount = store.follower_count || 0;

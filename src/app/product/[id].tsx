@@ -34,7 +34,7 @@ export default function ProductDetailScreen() {
     const { data } = await safeApiCall(() => 
       supabase
         .from('products')
-        .select('*, store:stores(id, store_name, store_slug, logo_url, is_verified)')
+        .select('*, store:stores(id, store_name, store_slug, logo_url)')
         .eq('id', id)
         .single()
     );
@@ -53,7 +53,7 @@ export default function ProductDetailScreen() {
   const checkWishlist = async () => {
     if (!session?.user?.id) return;
     const { data } = await safeApiCall(() => 
-      supabase.from('wishlist').select('id').eq('user_id', session.user.id).eq('product_id', id).single()
+      supabase.from('wishlist').select('id').eq('user_id', session.user.id).eq('product_id', id).maybeSingle()
     );
     if (data) setIsSaved(true);
   };

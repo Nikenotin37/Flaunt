@@ -46,7 +46,7 @@ export default function StoreProfileScreen() {
   const checkFollowStatus = async () => {
     if (!session?.user?.id) return;
     const { data } = await safeApiCall(() => 
-      supabase.from('follows').select('id').eq('follower_id', session.user.id).eq('store_id', id).single()
+      supabase.from('follows').select('id').eq('follower_id', session.user.id).eq('store_id', id).maybeSingle()
     );
     if (data) setIsFollowing(true);
   };

@@ -55,7 +55,7 @@ export default function HomeScreen() {
     const { data } = await safeApiCall(() => 
       supabase
         .from('products')
-        .select('*, stores(store_name, logo_url, is_verified)')
+        .select('*, stores(store_name, logo_url)')
         .eq('status', 'active')
         .eq('is_available', true)
         .order('created_at', { ascending: false })

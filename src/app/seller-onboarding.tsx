@@ -78,7 +78,6 @@ export default function SellerOnboardingScreen() {
           store_name: storeName || 'My Store',
           store_slug: storeSlug || `store_${session.user.id.slice(0, 6)}`,
           theme_id: selectedTheme,
-          is_verified: false,
         }).select().maybeSingle()
       );
       
