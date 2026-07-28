@@ -32,7 +32,7 @@ export default function SellerOnboardingScreen() {
   const validateSlug = async () => {
     if (!storeSlug) return false;
     const { data } = await safeApiCall(() => 
-      supabase.from('stores').select('id').eq('store_slug', storeSlug).single()
+      supabase.from('stores').select('id').eq('store_slug', storeSlug).maybeSingle()
     );
     if (data) {
       setSlugError('Store handle already taken.');
@@ -54,29 +54,61 @@ export default function SellerOnboardingScreen() {
   const handleFinish = async () => {
     if (!session?.user?.id) return router.push('/sign-in' as any);
     
-    // 1. Create store in Supabase
-    const { data: storeData } = await safeApiCall(() => 
-      supabase.from('stores').insert({
-        seller_id: session.user.id,
-        store_name: storeName,
-        store_slug: storeSlug,
-        theme_id: selectedTheme,
-        is_verified: false,
-      }).select().single()
-    );
+    let storeData = null;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    // 2. Update user to is_seller = true
-    if (storeData) {
-      await safeApiCall(() => 
-        supabase.from('users').update({ is_seller: true }).eq('auth_id', session.user.id)
+    while (attempts < maxAttempts) {
+      attempts++;
+      
+      // 1. Check if store already exists for this seller to avoid duplicate key violations
+      const { data: existingStore } = await safeApiCall(() => 
+        supabase.from('stores').select('*').eq('seller_id', session.user.id).maybeSingle()
       );
+      
+      if (existingStore) {
+        storeData = existingStore;
+        break;
+      }
+      
+      // 2. Attempt to create the store
+      const { data: newStore } = await safeApiCall(() => 
+        supabase.from('stores').insert({
+          seller_id: session.user.id,
+          store_name: storeName || 'My Store',
+          store_slug: storeSlug || `store_${session.user.id.slice(0, 6)}`,
+          theme_id: selectedTheme,
+          is_verified: false,
+        }).select().maybeSingle()
+      );
+      
+      if (newStore) {
+        storeData = newStore;
+        break;
+      }
+      
+      // Delay 1 second before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    if (storeData) {
+      // 3. Update user is_seller flag with retries
+      let userAttempts = 0;
+      while (userAttempts < maxAttempts) {
+        userAttempts++;
+        const { error: userError } = await safeApiCall(() => 
+          supabase.from('users').update({ is_seller: true }).eq('auth_id', session.user.id)
+        );
+        if (!userError) break;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
       
       setSeller(true, storeData.id);
       
       // Go to profile to see the new dashboard and theme
       router.replace('/profile');
     } else {
-      alert('Error creating store. Please try again.');
+      alert('Error creating store. Please check your internet connection and try again.');
     }
   };
 
