@@ -20,7 +20,9 @@ function sameHash(left, right) {
 
 function redirectToApp(path) {
   const base = process.env.APP_URL || 'flaunt://';
-  return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+  const cleanPath = path.replace(/^\//, '');
+  if (/^[a-z][a-z0-9+.-]*:\/\/$/i.test(base)) return `${base}${cleanPath}`;
+  return `${base.replace(/\/$/, '')}/${cleanPath}`;
 }
 
 function payuHash({ txnid, amount, productinfo, firstname, email }) {
@@ -38,6 +40,26 @@ function payuReverseHash({ status, email, firstname, productinfo, amount, txnid 
   ].join('|'));
 }
 
+function checkoutToken(payload) {
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const secret = process.env.CHECKOUT_REDIRECT_SECRET || process.env.PAYU_SALT;
+  const signature = crypto.createHmac('sha256', secret).update(encoded).digest('base64url');
+  return `${encoded}.${signature}`;
+}
+
+function readCheckoutToken(token) {
+  const [encoded, signature] = String(token || '').split('.');
+  const secret = process.env.CHECKOUT_REDIRECT_SECRET || process.env.PAYU_SALT;
+  if (!encoded || !signature) return null;
+  const expected = crypto.createHmac('sha256', secret).update(encoded).digest('base64url');
+  if (!sameHash(signature, expected)) return null;
+  try { return JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); } catch { return null; }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'\"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '\"': '&quot;' }[character]));
+}
+
 router.post('/create-order', requireAuth, async (req, res, next) => {
   try {
     const { productId, addressId, buyerName, buyerEmail, buyerPhone, deliveryCharges = 0 } = req.body;
@@ -50,6 +72,12 @@ router.post('/create-order', requireAuth, async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Invalid delivery charges' });
     }
 
+    // stores.seller_id and addresses.user_id reference public.users.id.
+    const { data: buyerProfile, error: buyerProfileError } = await supabase
+      .from('users').select('id').eq('auth_id', req.user.id).maybeSingle();
+    if (buyerProfileError) throw buyerProfileError;
+    if (!buyerProfile) return res.status(403).json({ success: false, error: 'FLAUNT user profile is not ready' });
+
     const { data: product, error: productError } = await supabase
       .from('products').select('id, name, price, status, store_id').eq('id', productId).maybeSingle();
     if (productError) throw productError;
@@ -58,10 +86,10 @@ router.post('/create-order', requireAuth, async (req, res, next) => {
     const { data: store, error: storeError } = await supabase
       .from('stores').select('id, seller_id').eq('id', product.store_id).single();
     if (storeError) throw storeError;
-    if (store.seller_id === req.user.id) return res.status(400).json({ success: false, error: 'You cannot buy your own product' });
+    if (store.seller_id === buyerProfile.id) return res.status(400).json({ success: false, error: 'You cannot buy your own product' });
 
     const { data: address, error: addressError } = await supabase
-      .from('addresses').select('id').eq('id', addressId).eq('user_id', req.user.id).maybeSingle();
+      .from('addresses').select('id').eq('id', addressId).eq('user_id', buyerProfile.id).maybeSingle();
     if (addressError) throw addressError;
     if (!address) return res.status(403).json({ success: false, error: 'Address does not belong to this buyer' });
 
@@ -91,6 +119,9 @@ router.post('/create-order', requireAuth, async (req, res, next) => {
     res.json({
       success: true,
       orderId: order.id,
+      paymentUrl: `${process.env.BACKEND_URL}/api/payments/redirect/${encodeURIComponent(order.id)}?token=${encodeURIComponent(checkoutToken({
+        orderId: order.id, txnid, amount, productinfo: product.name, firstname: buyerName, email: buyerEmail, phone: buyerPhone,
+      }))}`,
       payuData: {
         key: process.env.PAYU_MERCHANT_KEY,
         txnid,
@@ -105,6 +136,21 @@ router.post('/create-order', requireAuth, async (req, res, next) => {
       },
     });
   } catch (error) { next(error); }
+});
+
+router.get('/redirect/:orderId', async (req, res) => {
+  const payload = readCheckoutToken(req.query.token);
+  if (!payload || String(payload.orderId) !== String(req.params.orderId)) return res.status(400).send('Invalid payment session');
+  const action = `${process.env.PAYU_BASE_URL || 'https://test.payu.in'}/_payment`;
+  const fields = {
+    key: process.env.PAYU_MERCHANT_KEY, txnid: payload.txnid, amount: payload.amount,
+    productinfo: payload.productinfo, firstname: payload.firstname, email: payload.email,
+    phone: payload.phone, surl: `${process.env.BACKEND_URL}/api/payments/success`,
+    furl: `${process.env.BACKEND_URL}/api/payments/failure`,
+    hash: payuHash(payload), service_provider: 'payu',
+  };
+  const inputs = Object.entries(fields).map(([name, value]) => `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`).join('');
+  res.type('html').send(`<!doctype html><html><body onload="document.forms[0].submit()"><p>Redirecting to PayU…</p><form method="post" action="${escapeHtml(action)}">${inputs}</form></body></html>`);
 });
 
 async function handlePaymentSuccess(req, res, next) {
